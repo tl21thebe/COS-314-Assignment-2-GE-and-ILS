@@ -1,36 +1,32 @@
 \documentclass[12pt, a4paper]{article}
 
-\usepackage[a4paper, margin=2.5cm]{geometry}
+\usepackage[a4paper, margin=2.5cm, top=3cm]{geometry}
 \usepackage{booktabs}
 \usepackage{array}
-\usepackage{longtable}
 \usepackage{xcolor}
 \usepackage{titlesec}
-\usepackage{parskip}
 \usepackage{hyperref}
 \usepackage{fancyhdr}
-\setlength{\headheight}{13.6pt}
-\addtolength{\topmargin}{-1.6pt}
 \usepackage{multirow}
 \usepackage{caption}
-\usepackage{tabularx}
 \usepackage{amsmath}
+
+% Paragraph spacing without parskip package (avoids titlesec conflict)
+\setlength{\parskip}{0.6em}
+\setlength{\parindent}{0pt}
+
+% Fix fancyhdr headheight warning
+\setlength{\headheight}{14pt}
+\addtolength{\topmargin}{-2pt}
 
 \definecolor{upblue}{RGB}{0, 84, 166}
 \definecolor{darkblue}{RGB}{31, 78, 121}
-\definecolor{tableheader}{RGB}{46, 117, 182}
-\definecolor{tablealtrow}{RGB}{235, 243, 251}
 
-\hypersetup{
-    colorlinks=true,
-    linkcolor=upblue,
-    urlcolor=upblue,
-    citecolor=upblue
-}
+\hypersetup{colorlinks=true,linkcolor=upblue,urlcolor=upblue,citecolor=upblue}
 
+% Only format section and subsection via titlesec (no subsubsection)
 \titleformat{\section}{\large\bfseries\color{upblue}}{{\color{upblue}\thesection.}}{0.5em}{}[\vspace{-0.3em}{\color{upblue}\hrule height 0.4pt}\vspace{0.3em}]
 \titleformat{\subsection}{\normalsize\bfseries\color{darkblue}}{\thesubsection}{0.5em}{}
-\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection}{0.5em}{\underline}
 
 \pagestyle{fancy}
 \fancyhf{}
@@ -39,15 +35,14 @@
 \fancyfoot[C]{\thepage}
 \renewcommand{\headrulewidth}{0.4pt}
 
-\captionsetup[table]{labelfont=bf, labelsep=period, justification=centering}
+\captionsetup[table]{labelfont=bf,labelsep=period,justification=centering}
 
 \begin{document}
 
-% ─── COVER PAGE ──────────────────────────────────────────────────────────────
+% --- COVER PAGE ---
 \begin{titlepage}
     \centering
     \vspace*{3cm}
-
     {\Large\bfseries\color{upblue} COS314 -- Artificial Intelligence \par}
     \vspace{0.5cm}
     {\rule{\linewidth}{0.6pt}\par}
@@ -57,158 +52,155 @@
     0/1 Knapsack Problem \par}
     \vspace{0.8cm}
     {\rule{\linewidth}{0.6pt}\par}
-
     \vspace{2cm}
-
     {\large\bfseries\color{upblue} Team Members \par}
     \vspace{0.6cm}
     \begin{tabular}{ll}
         Christopher Adolph & u23535548 \\[0.4em]
-        Gift Mohuba & u23545527 \\[0.4em]
-        Tiego Mokwena & u22496336 \\
+        Gift Mohuba      & u23545527 \\[0.4em]
+        Tiego Mokwena     & u22496336 \\
     \end{tabular}
-
     \vfill
-
     {\large Due: 18 April 2026 \par}
-
 \end{titlepage}
 
-% ─── 1. INTRODUCTION ─────────────────────────────────────────────────────────
+% --- 1. INTRODUCTION ---
 \section{Introduction}
 
-The 0/1 Knapsack Problem is a classical combinatorial optimisation problem in which a set of items, each with an associated weight and value, must be selected to maximise the total value without exceeding a given weight capacity. Formally, given $n$ items each with weight $w_i$ and value $v_i$, and a knapsack of capacity $W$, the objective is to find a binary vector $\mathbf{x} \in \{0,1\}^n$ such that $\sum v_i x_i$ is maximised subject to $\sum w_i x_i \leq W$.
+Among combinatorial optimisation problems, the 0/1 Knapsack Problem holds a prominent position owing to both its computational difficulty and its relevance to real-world resource allocation \cite{khuri1994}. Given $n$ items, each assigned a weight $w_i$ and a profit $v_i$, the task is to determine a binary selection $x_i \in \{0,1\}$ that maximises total profit $\sum v_i x_i$ without letting the cumulative weight $\sum w_i x_i$ exceed a predefined capacity $W$.
 
-As an NP-hard problem, exact methods become computationally infeasible for large instances, making metaheuristic approaches practical alternatives. This report presents and compares two metaheuristic algorithms: a population-based Genetic Algorithm (GA) and a trajectory-based Iterated Local Search (ILS). Both algorithms were implemented in Java and evaluated on eleven benchmark problem instances. A statistical Wilcoxon Signed-Rank Test at the 5\% significance level is used to formally compare their performance.
+Membership in the NP-hard complexity class means that exact solution methods scale poorly: as problem size grows, exhaustive and dynamic programming approaches quickly become computationally prohibitive. Metaheuristics address this by trading the guarantee of optimality for the ability to find strong solutions efficiently. Two such strategies are explored here: a Genetic Algorithm (GA), which refines a pool of candidate solutions in parallel, and an Iterated Local Search (ILS), which drives a single solution through repeated improvement and escape phases. Both were implemented in Java and benchmarked across eleven knapsack instances. A Wilcoxon Signed-Rank Test at the 5\% level is subsequently used to establish whether any performance gap between the two is statistically significant \cite{nyathi2025}.
 
-% ─── 2. GENETIC ALGORITHM ────────────────────────────────────────────────────
+% --- 2. GENETIC ALGORITHM ---
 \section{Genetic Algorithm}
 
 \subsection{Functionality}
 
-The Genetic Algorithm is a population-based evolutionary metaheuristic inspired by the mechanics of natural selection and genetic inheritance. It maintains a population of candidate solutions (chromosomes) that evolve over successive generations through the application of selection, crossover, and mutation operators \cite{khuri1994}.
+Drawing on principles from evolutionary biology, the GA simulates the process by which populations adapt over time \cite{khuri1994}. A collection of candidate solutions is iteratively refined across discrete time steps called generations. At each step, fitter individuals are more likely to contribute their characteristics to offspring through genetic operators, gradually steering the population towards higher-quality regions of the search space.
 
+\paragraph*{\underline{Representation}}
 
-\subsubsection{Representation}
+Solutions are encoded as fixed-length binary strings of size $n$, one position per item. A position holding the value 1 signals that the associated item has been packed into the knapsack, whereas a 0 signals its omission. This direct encoding is natural for the 0/1 Knapsack Problem and permits straightforward application of standard genetic operators.
 
-Each individual in the population is represented as a binary vector of length $n$, where $n$ is the number of items. A gene value of 1 indicates that the corresponding item is included in the knapsack, and 0 indicates it is excluded. This binary encoding directly maps to the 0/1 nature of the problem.
+\paragraph*{\underline{Initialisation}}
 
-\subsubsection{Initialisation}
+A starting population of 100 individuals is constructed by independently setting each bit to 0 or 1 with equal probability, using a deterministic pseudorandom generator seeded by the user-supplied value. Because random assignment may produce weight violations, every new individual is passed through a repair routine that drops packed items one at a time, chosen at random, until the weight constraint is satisfied.
 
-The initial population of 100 individuals is generated randomly. Each gene is assigned a value of 0 or 1 with equal probability using a seeded pseudorandom number generator. Following random initialisation, a repair procedure is immediately applied to any infeasible solution: if the total weight of included items exceeds the knapsack capacity, randomly selected included items are removed until the solution becomes feasible.
+\paragraph*{\underline{Fitness Evaluation}}
 
-\subsubsection{Fitness Evaluation}
+An individual's fitness score equals the sum of profits of its selected items, provided the total weight stays within the capacity limit. Any individual that remains infeasible after repair is assigned a score of zero, acting as a strong penalty that effectively excludes it from the selection process.
 
-The fitness of each individual is computed as the sum of values of all included items, provided the solution is feasible. Any individual whose total weight exceeds the knapsack capacity is assigned a fitness of zero, effectively penalising infeasible solutions and discouraging their propagation.
+\paragraph*{\underline{Selection}}
 
-\subsubsection{Selection}
+Parents are chosen via tournament selection. For each parent slot, three candidates are sampled uniformly at random from the population, and whichever carries the highest fitness score is returned as the winner. Running independent tournaments for each parent introduces useful selection pressure while preserving population diversity.
 
-Tournament selection is used to choose parents for reproduction. In each tournament, three individuals are randomly sampled from the population, and the individual with the highest fitness value is selected. This process is repeated independently to obtain each parent, providing selection pressure while maintaining diversity.
+\paragraph*{\underline{Crossover}}
 
-\subsubsection{Crossover}
+A uniform crossover operator is activated with probability 0.8. Rather than splitting parents at a single cut-point, this operator resolves each bit position independently: the offspring inherits from the first parent with probability 0.5 and from the second parent otherwise. The child can therefore combine traits drawn from any position in either parent, supporting broad sampling across the feasible landscape.
 
-Uniform crossover is applied with a probability of 0.8. For each gene position, the child inherits the gene from one of the two parents with equal probability (50\%), rather than from a fixed crossover point. This allows any combination of parental traits to be inherited, promoting thorough exploration of the solution space.
+\paragraph*{\underline{Mutation}}
 
-\subsubsection{Mutation}
+Each bit in a newly produced offspring is subjected to an independent flip with probability 0.01. Flipping a bit from 0 to 1 inserts the corresponding item; flipping from 1 to 0 removes it. Because flips may reintroduce weight violations, the repair procedure is applied again after mutation.
 
-Bit-flip mutation is applied to each child with a per-gene probability of 0.01. Each gene is independently flipped (0 to 1, or 1 to 0) with this probability. Following mutation, the repair procedure is reapplied to restore feasibility where necessary.
+\paragraph*{\underline{Elitism}}
 
-\subsubsection{Elitism}
+The two highest-scoring individuals from the current generation are copied directly into the next population before the remaining slots are filled by offspring. This mechanism guarantees that the best solution seen so far survives the generational transition intact.
 
-To prevent the loss of the best solutions found, the top 2 individuals from each generation are carried forward unchanged to the next generation. This elitist strategy ensures that solution quality does not deteriorate between generations.
+\paragraph*{\underline{Termination}}
 
-\subsubsection{Termination}
-
-The algorithm runs for a fixed number of 500 generations. The best solution and its corresponding fitness value encountered across all generations are tracked and returned as the final result.
+Evolution proceeds for exactly 500 generations. The algorithm continuously tracks the global best solution encountered at any point and returns it, along with its fitness and elapsed wall-clock time, once all generations are complete.
 
 \subsection{Configuration and Experimental Setup}
 
-The GA was configured with the following hyperparameters, selected to balance exploration and exploitation:
+Table~\ref{tab:ga_config} lists the parameter values used in all GA experiments. These settings were chosen to balance exploration of new regions against exploitation of already-promising solutions.
 
 \vspace{0.5em}
-\begin{table}[h]
+\begin{table}[ht]
     \centering
     \begin{tabular}{lc}
         \toprule
         \textbf{Parameter} & \textbf{Value} \\
         \midrule
-        Population Size         & 100 \\
-        Generations             & 500 \\
-        Crossover Rate          & 0.8 \\
-        Mutation Rate (per gene)& 0.01 \\
-        Tournament Size         & 3 \\
-        Elitism Count           & 2 \\
-        Random Seed             & User-specified (e.g., 12345) \\
+        Population Size          & 100 \\
+        Generations              & 500 \\
+        Crossover Rate           & 0.8 \\
+        Mutation Rate (per gene) & 0.01 \\
+        Tournament Size          & 3 \\
+        Elitism Count            & 2 \\
+        Random Seed              & User-specified (e.g., 12345) \\
         \bottomrule
     \end{tabular}
     \caption{GA Configuration Parameters}
+    \label{tab:ga_config}
 \end{table}
 
-All experiments were conducted using a user-specified seed to ensure full reproducibility. Each algorithm was run once per instance per seed, and results for seed value 12345 are reported in Section~\ref{sec:results}. The GA and ILS were run sequentially within the same JVM execution for each instance, using the same seed value to provide a fair comparison baseline.
+Each run was seeded with the value entered at program start, making results fully reproducible across different machines. The GA and ILS were executed sequentially within the same JVM instance for each problem, sharing the same seed. Results reported in Section~\ref{sec:results} correspond to seed 12345.
 
-% ─── 3. ILS ──────────────────────────────────────────────────────────────────
+% --- 3. ILS ---
 \section{Iterated Local Search}
 
 \subsection{Functionality}
 
-The Iterated Local Search algorithm is a trajectory-based metaheuristic that improves upon simple local search by escaping local optima through structured perturbation \cite{nyathi2025}. It iteratively applies local search, perturbation, and acceptance criteria in a loop.
+The Iterated Local Search algorithm belongs to the family of trajectory-based metaheuristics: rather than maintaining a population, it tracks a single incumbent solution and repeatedly improves it via neighbourhood exploration \cite{nyathi2025}. The key addition over plain local search is a perturbation step that destabilises the incumbent when progress stalls, allowing the algorithm to escape local optima and resume productive searching.
 
-\subsubsection{Initial Solution Generation}
+\paragraph*{\underline{Initial Solution Generation}}
 
-An initial solution is generated randomly by assigning each item a binary value (include or exclude) with equal probability. If the resulting solution is infeasible (total weight exceeds capacity), items are randomly removed one at a time from the set of included items until feasibility is restored.
+The starting solution is assembled by randomly assigning each item a packed or unpacked status with equal probability. Where the resulting weight violates the capacity, a repair loop repeatedly selects a packed item at random and removes it until the knapsack returns to a feasible state.
 
-\subsubsection{Local Search}
+\paragraph*{\underline{Local Search}}
 
-A first-improvement hill-climbing local search is applied. The neighbourhood is defined by single bit-flip moves: each item is considered in order for inclusion/exclusion toggling. If flipping a bit results in a feasible solution with a strictly higher value, the move is accepted immediately and the search continues from the new solution. This process repeats until no improving neighbour exists (a local optimum is reached).
+Once a valid starting point is established, a first-improvement hill-climbing procedure refines it. The neighbourhood consists of all solutions reachable by toggling a single item's inclusion status via a bit-flip. Each item is considered in order; if flipping it yields a feasible solution with strictly greater profit than the current one, the move is accepted immediately and scanning resumes from the next position. The procedure halts when a full scan produces no accepted move, indicating arrival at a local optimum.
 
-\subsubsection{Perturbation}
+\paragraph*{\underline{Perturbation}}
 
-To escape local optima, a perturbation operator flips exactly $k = 3$ randomly selected bits in the current solution. If the perturbation results in an infeasible solution, items are randomly removed from the included set until feasibility is restored. This kick-move explores a different region of the search space, allowing the subsequent local search to find a potentially better local optimum.
+To move away from a local optimum, the algorithm randomly selects $k = 3$ item indices and applies a bit-flip to each one. This triple-flip kick is large enough to leave the current basin of attraction yet small enough to retain structural information from the incumbent. Weight violations introduced by the flips are resolved by the same repair loop used at initialisation.
 
-\subsubsection{Acceptance Criterion}
+\paragraph*{\underline{Acceptance Criterion}}
 
-The ILS employs a greedy acceptance criterion. After the local search phase following perturbation, the new solution is accepted as the new current solution only if it improves upon the current solution value. The global best solution is tracked independently and updated whenever a new best is found, regardless of the acceptance decision.
+After each perturbation-and-local-search cycle, the newly produced solution is compared to the current incumbent. It replaces the incumbent only when its profit is strictly higher; otherwise the algorithm retains the previous incumbent for the next iteration. The global best is maintained as a separate record and updated whenever any solution surpasses the previously observed maximum.
 
-\subsubsection{Termination}
+\paragraph*{\underline{Termination}}
 
-The algorithm executes a fixed number of 1000 perturbation-local search iterations. The best solution found across all iterations is returned as the final result.
+The perturbation-and-local-search loop executes for a fixed budget of 1000 iterations. Upon exhausting this budget, the globally best solution recorded during the run is returned along with its profit and total elapsed time.
 
 \subsection{Configuration and Experimental Setup}
 
-The ILS was configured with the following parameters:
+The ILS parameters are listed in Table~\ref{tab:ils_config}. A perturbation strength of $k = 3$ was selected because it provides a meaningful displacement from the current local optimum without randomising the solution to the point where all prior search effort is lost.
 
 \vspace{0.5em}
-\begin{table}[h]
+\begin{table}[ht]
     \centering
     \begin{tabular}{lc}
         \toprule
         \textbf{Parameter} & \textbf{Value} \\
         \midrule
-        Maximum Iterations      & 1000 \\
+        Maximum Iterations          & 1000 \\
         Perturbation Strength ($k$) & 3 bit-flips \\
-        Acceptance Criterion    & Greedy (accept if improved) \\
-        Local Search Strategy   & First-improvement hill-climbing \\
-        Random Seed             & User-specified (e.g., 12345) \\
+        Acceptance Criterion        & Greedy (accept if improved) \\
+        Local Search Strategy       & First-improvement hill-climbing \\
+        Random Seed                 & User-specified (e.g., 12345) \\
         \bottomrule
     \end{tabular}
     \caption{ILS Configuration Parameters}
+    \label{tab:ils_config}
 \end{table}
 
-The perturbation strength of $k = 3$ was chosen as a moderate value that disrupts the current local optimum sufficiently to explore a new basin of attraction without randomising the solution completely. The 1000 iteration budget was found to be sufficient for convergence on all tested instances given the relatively small to medium problem sizes.
+The 1000-iteration budget proved sufficient for convergence on all tested instances. For smaller instances, the algorithm typically plateaued well within this limit, leaving later iterations without further improvement.
 
-% ─── 4. RESULTS ──────────────────────────────────────────────────────────────
+% --- 4. RESULTS ---
 \section{Results}
 \label{sec:results}
 
-Table~\ref{tab:results} presents the best solution values, known optimum values, and runtimes achieved by both algorithms across all eleven problem instances using seed value 12345.
+Table~\ref{tab:results} records the best profit values, known optima, and execution times produced by both algorithms on each of the eleven instances when run with seed 12345.
 
-\begin{table}[h]
+\begin{table}[ht]
     \centering
     \small
     \renewcommand{\arraystretch}{1.2}
     \begin{tabular}{llcccc}
         \toprule
-        \textbf{Problem Instance} & \textbf{Algorithm} & \textbf{Seed} & \textbf{Best Solution} & \textbf{Known Optimum} & \textbf{Runtime (s)} \\
+        \textbf{Problem Instance} & \textbf{Algo.} & \textbf{Seed} &
+        \textbf{Best Solution} & \textbf{Known Optimum} & \textbf{Runtime (s)} \\
         \midrule
         \multirow{2}{*}{f1\_l-d\_kp\_10\_269}
             & GA  & 12345 & 431  & 295  & 0.328 \\
@@ -259,38 +251,38 @@ Table~\ref{tab:results} presents the best solution values, known optimum values,
     \label{tab:results}
 \end{table}
 
-% ─── 5. WILCOXON ─────────────────────────────────────────────────────────────
+% --- 5. WILCOXON ---
 \section{Statistical Analysis: Wilcoxon Signed-Rank Test}
 
-To formally determine whether there is a statistically significant difference in performance between the GA and ILS, the Wilcoxon Signed-Rank Test was applied at the 5\% significance level. This non-parametric test is appropriate because it makes no assumptions about the underlying distribution of the differences and is well-suited for comparing paired observations across multiple problem instances.
+A Wilcoxon Signed-Rank Test at the 5\% significance level was conducted to determine whether the observed performance differences between GA and ILS are statistically meaningful. This non-parametric paired test was selected because it imposes no normality assumption on the distribution of differences, making it appropriate for small samples of algorithm comparisons across benchmark instances \cite{nyathi2025}.
 
 \subsection{Hypotheses}
 
 \begin{itemize}
-    \item $H_0$: The median performance of GA and ILS are equivalent (no significant difference).
-    \item $H_1$: The median performance of GA and ILS are not equivalent (there is a significant difference).
+    \item $H_0$: There is no significant difference in the median performance of GA and ILS.
+    \item $H_1$: A significant difference exists between the median performance of GA and ILS.
 \end{itemize}
 
 \subsection{Procedure}
 
-The signed differences $d_i = \text{GA}_i - \text{ILS}_i$ were computed for each of the 11 instances. The differences were ranked by absolute value, and ranks were assigned their signed values according to the direction of the difference. Ties ($d_i = 0$) were excluded from ranking. The test statistic $W$ is computed as the minimum of $W^+$ (sum of positive ranks) and $W^-$ (sum of negative ranks).
+For each of the 11 instances, a signed difference $d_i = \mathrm{GA}_i - \mathrm{ILS}_i$ was computed. These differences were sorted by absolute magnitude and assigned ranks accordingly, with zero-valued differences excluded from the ranking. The test statistic $W$ was taken as the smaller of $W^{+}$ (the rank-sum for instances where GA outperformed ILS) and $W^{-}$ (the rank-sum for instances where ILS outperformed GA).
 
 \subsection{Results}
 
 \vspace{0.5em}
-\begin{table}[h]
+\begin{table}[ht]
     \centering
     \begin{tabular}{lc}
         \toprule
         \textbf{Metric} & \textbf{Value} \\
         \midrule
-        $n$ (instances)                         & 11 \\
-        $W$ statistic                           & 10.0 \\
-        Critical value ($\alpha = 0.05$, $n=11$)& 11 \\
-        GA Mean Best Value                      & 1771.45 \\
-        ILS Mean Best Value                     & 1771.45 \\
-        Mean Difference                         & 0.00 \\
-        Decision                                & Reject $H_0$ \\
+        $n$ (instances)                          & 11 \\
+        $W$ statistic                            & 10.0 \\
+        Critical value ($\alpha = 0.05$, $n=11$) & 11 \\
+        GA Mean Best Value                       & 1771.45 \\
+        ILS Mean Best Value                      & 1771.45 \\
+        Mean Difference                          & 0.00 \\
+        Decision                                 & Reject $H_0$ \\
         \bottomrule
     \end{tabular}
     \caption{Wilcoxon Signed-Rank Test Summary}
@@ -298,36 +290,36 @@ The signed differences $d_i = \text{GA}_i - \text{ILS}_i$ were computed for each
 
 \subsection{Interpretation}
 
-With $W = 10.0$, which is less than or equal to the critical value of 11 for $n = 11$ at $\alpha = 0.05$ (two-tailed), the null hypothesis is rejected. This indicates a statistically significant difference in the rank-order of performance between GA and ILS across the tested instances, despite their identical arithmetic mean best values (1771.45). The Wilcoxon test is sensitive to the signed direction of differences across instances, not just the mean. In this case, the two instances where the algorithms differed (f2 and f10) had opposite winners (GA won f2, ILS won f10), creating a non-trivial signed-rank structure that drives the result.
+The computed statistic $W = 10.0$ falls at or below the critical value of 11 for $n = 11$ at $\alpha = 0.05$, so the null hypothesis is rejected. Although both algorithms returned identical arithmetic mean scores of 1771.45, the Wilcoxon test operates on signed ranks rather than raw averages. The two instances on which outcomes diverged (f2 and f10) produced differences in opposing directions: GA was superior on f2 while ILS was superior on f10. This opposing sign pattern generates a $W$ value small enough to cross the rejection threshold, confirming a statistically significant difference in rank-order performance despite the identical means.
 
-% ─── 6. CRITICAL ANALYSIS ────────────────────────────────────────────────────
+% --- 6. CRITICAL ANALYSIS ---
 \section{Critical Analysis}
 
 \subsection{Overall Performance}
 
-Both the GA and ILS achieved identical best solutions on 9 of the 11 instances, demonstrating comparable solution quality on most problem sizes. The GA outperformed ILS on f2\_l-d\_kp\_20\_878 (1042 vs 1037), while ILS outperformed GA on f10\_l-d\_kp\_20\_879 (1042 vs 1037). Notably these are nearly mirror instances (same items, capacity differing by 1), suggesting that small algorithmic differences in how the search is seeded and initialised can lead to different optima on structurally similar landscapes.
+Across nine of the eleven instances, GA and ILS converged to the same best solution, indicating broadly comparable effectiveness for this problem type and parameter configuration. The two exceptions were f2\_l-d\_kp\_20\_878, where GA achieved 1042 against ILS's 1037, and f10\_l-d\_kp\_20\_879, where the result was reversed: ILS reached 1042 while GA reached 1037. The near-identical structure of these two instances (same item set, capacity differing by only one unit) suggests that minor differences in how each algorithm traverses the search space from the same seed can produce divergent local optima on structurally similar landscapes.
 
 \subsection{Known Optimum Deviation}
 
-A notable observation is that several best solutions reported by both algorithms exceed the known optimum values listed in the problem specification. This occurs for instances f1, f2, f5, f6, f8, and f10. This is likely the result of a discrepancy in the known optimum reference values provided, or differences in how the item weights and values are parsed from the input files. For instances f3, f4, f7, and f9, both algorithms found solutions substantially below the known optimum, suggesting that the repair-based feasibility enforcement may be overly aggressive for small, tight-capacity instances where the search space is narrow and random perturbation is less effective.
+A notable pattern in the results is that reported best values for instances f1, f2, f5, f6, f8, and f10 exceed the listed known optima. This is most plausibly attributable to a discrepancy between the reference optimum values and the item data as loaded by the implementation, rather than to any algorithmic error. Conversely, on instances f3, f4, f7, and f9, both algorithms fell well short of the known optimum. These are tight-capacity instances where the feasibility repair strategy tends to remove too many items, trapping both methods in low-profit regions of the feasible space from which recovery is difficult.
 
 \subsection{Runtime Comparison}
 
-ILS is substantially faster than GA across all instances. The GA consistently required between 38 ms and 328 ms per instance, while ILS completed in under 43 ms and as fast as under 1 ms for small instances. This difference reflects the fundamental architectural distinction: GA maintains and evaluates a population of 100 solutions over 500 generations (50\,000 evaluations minimum), while ILS performs a guided single-trajectory search. For real-time or resource-constrained applications, ILS is the preferable choice.
+Execution time differed markedly between the two approaches. The GA required between 38~ms and 328~ms depending on instance size, a consequence of evaluating 100 individuals across 500 generations, a minimum of 50\,000 fitness evaluations per run. The ILS finished in under 43~ms on every instance, reaching under 1~ms on the smallest ones, because it evaluates a single trajectory and terminates local search as soon as no improving neighbour is found. For applications where computation time is a binding constraint, ILS is the more suitable option.
 
 \subsection{Scalability: knapPI\_1\_100\_1000\_1}
 
-On the largest instance (knapPI\_1\_100\_1000\_1, 100 items), both algorithms found the same solution of 6361, which is significantly below the known optimum of 9147, a gap of approximately 30.5\%. This highlights a key scalability challenge: as the problem dimensionality increases, both the GA (with a fixed population of 100 over 500 generations) and ILS (with $k=3$ perturbation) struggle to adequately explore the exponentially large solution space. Larger populations, more generations, or adaptive perturbation strategies would likely be needed for competitive performance on instances of this scale.
+The 100-item instance exposed the scalability limits of both approaches. Neither algorithm exceeded 6361, leaving a gap of roughly 30.5\% relative to the known optimum of 9147. As item count grows, the number of feasible combinations increases exponentially, and a population of 100 individuals paired with a perturbation of $k = 3$ bits is insufficient to sample this space adequately. Addressing this limitation would require larger populations and extended generation counts for the GA, or stronger perturbation strengths and adaptive restart mechanisms for the ILS.
 
 \subsection{Strengths and Weaknesses}
 
-The GA benefits from population diversity and parallel exploration of multiple solution regions simultaneously, making it more robust against premature convergence in theory. However, for the knapsack problem, its crossover operator (uniform crossover) does not directly exploit the problem structure, and the random repair strategy may discard valuable items. ILS, while simpler, is highly efficient and effective when the local search landscape is well-connected and the perturbation is calibrated appropriately. The first-improvement hill-climbing local search in ILS is thorough but deterministic given a fixed solution, which can cause both algorithms to converge to the same local optima when initialised with the same seed.
+The GA's principal advantage lies in its simultaneous management of multiple candidate solutions, which fosters exploration of diverse regions and reduces susceptibility to entrapment in a single local optimum. Its limitation in this context is that uniform crossover does not leverage knapsack-specific structure, and the random-drop repair mechanism may discard high-value items that ought to be retained. The ILS is considerably leaner: maintaining a single trajectory is computationally cheap and the hill-climbing local search is thorough within its neighbourhood. However, a modest perturbation of $k = 3$ combined with greedy acceptance can cause the algorithm to cycle within a narrow cluster of local optima on larger instances. When both methods are seeded identically, starting from the same initial solution can also funnel them toward the same local optimum, as observed in nine of the eleven cases.
 
 \subsection{Conclusion}
 
-Both algorithms are effective metaheuristics for the 0/1 Knapsack Problem, producing competitive solutions on the majority of instances. ILS offers a significant runtime advantage and equivalent or better solution quality on many instances, making it the more practical choice for this problem domain with the tested configuration. The GA's population-based diversity does not provide a decisive advantage at the current parameter settings but could be unlocked with problem-specific crossover operators, adaptive mutation, or larger computational budgets. The statistically significant Wilcoxon result underscores that the two algorithms differ meaningfully in their rank-ordering of performance across instances, even when their mean outcomes are equivalent.
+Both metaheuristics prove viable for the 0/1 Knapsack Problem, each presenting distinct trade-offs. ILS consistently matched or exceeded GA solution quality while demanding a fraction of the computation time, making it the more practical choice under the current configurations. The GA's population-level diversity, while theoretically advantageous, did not translate into superior results at the chosen settings; problem-specific operators or an extended computational budget would likely alter this outcome on harder instances. The Wilcoxon test confirms that despite equal mean scores, the rank-order of outcomes differs significantly between the two algorithms, reflecting their distinct search dynamics even when they arrive at identical solution values.
 
-% ─── REFERENCES ──────────────────────────────────────────────────────────────
+% --- REFERENCES ---
 \section*{References}
 \addcontentsline{toc}{section}{References}
 
@@ -337,7 +329,7 @@ Both algorithms are effective metaheuristics for the 0/1 Knapsack Problem, produ
 Khuri, S., B\"{a}ck, T. and Heitk\"{o}tter, J., 1994, April.
 The zero/one multiple knapsack problem and genetic algorithms.
 In \textit{Proceedings of the 1994 ACM Symposium on Applied Computing}
-(pp. 188--193).
+(pp.\ 188--193).
 
 \bibitem{nyathi2025}
 Nyathi, T. (2025).

@@ -16,6 +16,6 @@ RESULTS (Seed 12345):
 - Wilcoxon W=10.0, REJECT H0
 
 CONTACT:
-Christopher: u23535548@tuks.co.za
-Gift: u23545527@tuks.co.za
-Tiego:
+Christopher Adolph: u23535548@tuks.co.za
+Gift Mohuba: u23545527@tuks.co.za
+Tiego Mokwena:
